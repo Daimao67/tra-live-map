@@ -2,13 +2,9 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  >
-
-  <title>TRA LIVE｜台鐵即時列車地圖</title>
+  <title>TRA Live Map</title>
 
   <link
     rel="stylesheet"
@@ -22,641 +18,651 @@
 
     html,
     body {
+      margin: 0;
       width: 100%;
       height: 100%;
-      margin: 0;
       overflow: hidden;
-
+      background: #071016;
+      color: #eef5f7;
       font-family:
         -apple-system,
         BlinkMacSystemFont,
-        "Segoe UI",
+        "SF Pro Display",
         "Noto Sans TC",
+        "Microsoft JhengHei",
         sans-serif;
-
-      background: #070a0e;
-      color: #eef3f8;
     }
-
-    body {
-      display: flex;
-    }
-
-    /* =========================
-       APP
-    ========================= */
 
     #app {
       width: 100%;
       height: 100%;
-
-      display: grid;
-      grid-template-columns: 340px 1fr;
+      display: flex;
+      position: relative;
     }
-
 
     /* =========================
        SIDEBAR
     ========================= */
 
-    .sidebar {
+    #sidebar {
+      width: 355px;
       height: 100%;
-
       background:
         linear-gradient(
           180deg,
-          #0d1218 0%,
-          #090d12 100%
+          #0b171d 0%,
+          #081217 55%,
+          #061015 100%
         );
-
-      border-right: 1px solid #202934;
-
+      border-right: 1px solid rgba(255,255,255,.08);
+      z-index: 1000;
       display: flex;
       flex-direction: column;
-
-      z-index: 2000;
+      box-shadow: 12px 0 40px rgba(0,0,0,.28);
     }
 
-
-    /* =========================
-       HEADER
-    ========================= */
-
     .brand {
-      height: 74px;
-
-      padding: 14px 17px;
-
+      height: 82px;
+      padding: 18px 22px;
       display: flex;
       align-items: center;
-      gap: 12px;
-
-      border-bottom: 1px solid #202934;
+      gap: 13px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
     }
 
     .brand-logo {
-      width: 43px;
-      height: 43px;
-
-      border-radius: 12px;
-
+      width: 45px;
+      height: 45px;
+      border-radius: 14px;
+      background: linear-gradient(145deg,#e9f4f7,#8eaab2);
+      color: #081116;
       display: flex;
       align-items: center;
       justify-content: center;
-
-      background: #141b23;
-      border: 1px solid #293541;
-
       font-size: 22px;
+      font-weight: 900;
+      box-shadow: 0 7px 25px rgba(0,0,0,.3);
     }
 
     .brand-title {
       font-size: 18px;
-      font-weight: 800;
-      letter-spacing: .5px;
+      font-weight: 850;
+      letter-spacing: .4px;
     }
 
     .brand-subtitle {
       margin-top: 3px;
-
+      color: #76909a;
       font-size: 11px;
-
-      color: #7f8b99;
+      letter-spacing: 1.2px;
     }
 
+    .live-status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #8ea8af;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #55e58b;
+      border-radius: 50%;
+      box-shadow: 0 0 12px rgba(85,229,139,.7);
+    }
 
     /* =========================
        SEARCH
     ========================= */
 
     .search-box {
-      padding: 13px;
-
-      border-bottom: 1px solid #202934;
+      padding: 16px 18px 10px;
     }
 
-    #search {
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #708891;
+      font-size: 16px;
+      pointer-events: none;
+    }
+
+    #searchInput {
       width: 100%;
-      height: 42px;
-
-      padding: 0 13px;
-
-      color: white;
-
-      background: #080c11;
-
-      border: 1px solid #283440;
-      border-radius: 9px;
-
+      height: 45px;
+      border: 1px solid rgba(255,255,255,.08);
       outline: none;
-
+      border-radius: 13px;
+      padding: 0 14px 0 40px;
+      background: rgba(255,255,255,.045);
+      color: white;
       font-size: 13px;
+      transition: .2s;
     }
 
-    #search:focus {
-      border-color: #4b657b;
+    #searchInput:focus {
+      border-color: rgba(148,190,201,.55);
+      background: rgba(255,255,255,.065);
     }
 
+    #searchInput::placeholder {
+      color: #60747c;
+    }
 
     /* =========================
-       STATISTICS
+       QUICK FILTER
     ========================= */
 
-    .statistics {
-      padding: 12px;
+    .filters {
+      padding: 6px 18px 14px;
+      display: flex;
+      gap: 7px;
+    }
 
+    .filter-btn {
+      flex: 1;
+      border: 1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.035);
+      color: #789099;
+      border-radius: 10px;
+      height: 34px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255,255,255,.07);
+      color: white;
+    }
+
+    .filter-btn.active {
+      background: rgba(207,225,230,.12);
+      color: #edf7f9;
+      border-color: rgba(207,225,230,.22);
+    }
+
+    /* =========================
+       STATS
+    ========================= */
+
+    .stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-
+      grid-template-columns: repeat(3,1fr);
       gap: 8px;
+      padding: 0 18px 15px;
     }
 
-    .stat-card {
-      padding: 11px;
-
-      background: #0e141b;
-
-      border: 1px solid #202a35;
-
-      border-radius: 9px;
-    }
-
-    .stat-label {
-      font-size: 10px;
-
-      color: #768392;
-
-      letter-spacing: .6px;
+    .stat {
+      padding: 12px 10px;
+      border: 1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.025);
+      border-radius: 12px;
     }
 
     .stat-value {
-      margin-top: 5px;
-
-      font-size: 20px;
-      font-weight: 750;
+      font-size: 19px;
+      font-weight: 850;
+      line-height: 1;
     }
 
+    .stat-label {
+      margin-top: 7px;
+      font-size: 9px;
+      color: #657c84;
+      letter-spacing: .8px;
+    }
 
     /* =========================
-       CONTENT
+       TRAIN LIST
     ========================= */
-
-    .sidebar-content {
-      flex: 1;
-
-      overflow-y: auto;
-
-      padding: 0 13px 20px;
-    }
 
     .section-title {
-      margin: 10px 2px 8px;
-
-      font-size: 10px;
-
-      color: #71808f;
-
-      letter-spacing: 1.3px;
-
-      text-transform: uppercase;
-    }
-
-
-    /* =========================
-       CONNECTION
-    ========================= */
-
-    .connection {
-      padding: 10px 11px;
-
+      padding: 0 20px 9px;
       display: flex;
       align-items: center;
-      gap: 9px;
-
-      background: #0e141b;
-
-      border: 1px solid #202a35;
-
-      border-radius: 9px;
-
-      font-size: 12px;
+      justify-content: space-between;
     }
 
-    .connection-dot {
-      width: 8px;
-      height: 8px;
-
-      border-radius: 50%;
-
-      background: #36e39a;
-
-      box-shadow:
-        0 0 10px rgba(54, 227, 154, .65);
+    .section-title strong {
+      font-size: 11px;
+      letter-spacing: 1.1px;
+      color: #b7cbd0;
     }
 
-    .connection-dot.error {
-      background: #ff5969;
-
-      box-shadow:
-        0 0 10px rgba(255, 89, 105, .65);
+    .section-title span {
+      font-size: 9px;
+      color: #60757d;
     }
 
-    .update-time {
-      margin-top: 8px;
+    #trainList {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px 18px;
+    }
 
+    #trainList::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #trainList::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.1);
+      border-radius: 10px;
+    }
+
+    .train-item {
+      position: relative;
+      margin: 5px 0;
+      padding: 13px 13px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.025);
+      cursor: pointer;
+      transition: .18s;
+    }
+
+    .train-item:hover {
+      background: rgba(255,255,255,.055);
+      border-color: rgba(255,255,255,.07);
+      transform: translateX(2px);
+    }
+
+    .train-item.selected {
+      background: rgba(205,224,230,.09);
+      border-color: rgba(205,224,230,.18);
+    }
+
+    .train-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .train-number {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .3px;
+    }
+
+    .train-type {
+      margin-left: 7px;
       font-size: 10px;
-
-      color: #657280;
+      color: #8299a1;
     }
 
-
-    /* =========================
-       ALERT
-    ========================= */
-
-    .alert-card {
-      padding: 11px;
-
-      margin-bottom: 8px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #1b1115,
-          #120e12
-        );
-
-      border: 1px solid #45242b;
-
-      border-radius: 9px;
-    }
-
-    .alert-title {
-      color: #ff7d89;
-
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .alert-description {
-      margin-top: 5px;
-
-      color: #b9c2cb;
-
+    .delay {
       font-size: 11px;
-
-      line-height: 1.5;
+      font-weight: 800;
+      color: #7ee6a1;
     }
 
-    .no-alert {
-      padding: 10px;
+    .delay.late {
+      color: #ffbd73;
+    }
 
-      color: #36e39a;
+    .delay.very-late {
+      color: #ff7777;
+    }
 
+    .train-location {
+      margin-top: 8px;
+      color: #9aafb5;
       font-size: 11px;
-
-      background: #0d1815;
-
-      border: 1px solid #19382e;
-
-      border-radius: 9px;
     }
 
+    .train-location b {
+      color: #e6eef0;
+    }
+
+    .train-direction {
+      margin-top: 4px;
+      color: #617780;
+      font-size: 10px;
+    }
 
     /* =========================
        MAP
     ========================= */
 
-    .map-container {
-      position: relative;
-
-      width: 100%;
-      height: 100%;
-    }
-
     #map {
-      width: 100%;
+      flex: 1;
       height: 100%;
-
-      background: #11161c;
+      background: #081116;
     }
 
+    .leaflet-container {
+      background: #081116;
+      font-family: inherit;
+    }
+
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,.35) !important;
+    }
+
+    .leaflet-control-zoom a {
+      background: rgba(9,20,25,.9) !important;
+      color: #d8e7eb !important;
+      border: 1px solid rgba(255,255,255,.08) !important;
+    }
 
     /* =========================
-       TOP BAR
+       STATION
     ========================= */
 
-    .top-bar {
+    .station-marker {
+      position: relative;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #dce9ec;
+      border: 3px solid #14262c;
+      box-shadow:
+        0 0 0 1px rgba(220,233,236,.5),
+        0 3px 10px rgba(0,0,0,.45);
+    }
+
+    .station-marker.major {
+      width: 17px;
+      height: 17px;
+      border-width: 4px;
+    }
+
+    .station-label {
       position: absolute;
-
-      top: 14px;
-      left: 14px;
-      right: 14px;
-
-      z-index: 1200;
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
+      left: 50%;
+      top: 20px;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: rgba(5,14,18,.88);
+      border: 1px solid rgba(255,255,255,.07);
+      color: #d6e3e6;
+      font-size: 10px;
+      font-weight: 650;
+      box-shadow: 0 4px 15px rgba(0,0,0,.25);
       pointer-events: none;
     }
-
-    .top-pill {
-      pointer-events: auto;
-
-      padding: 9px 12px;
-
-      background: rgba(8, 12, 17, .92);
-
-      border: 1px solid #27323d;
-
-      border-radius: 9px;
-
-      backdrop-filter: blur(12px);
-
-      font-size: 12px;
-
-      box-shadow:
-        0 8px 25px rgba(0,0,0,.3);
-    }
-
-    .live {
-      color: #36e39a;
-
-      font-weight: 800;
-    }
-
 
     /* =========================
        TRAIN MARKER
     ========================= */
 
     .train-marker {
-      width: 15px;
-      height: 15px;
-
-      border-radius: 50%;
-
-      background: #f4f8fb;
-
-      border: 3px solid #36e39a;
-
-      box-shadow:
-        0 0 0 3px rgba(54,227,154,.13),
-        0 0 15px rgba(54,227,154,.75);
-    }
-
-
-    /* =========================
-       STATION MARKER
-    ========================= */
-
-    .station-marker {
-      width: 8px;
-      height: 8px;
-
-      border-radius: 50%;
-
-      background: #aeb8c2;
-
-      border: 2px solid #12171d;
-    }
-
-
-    /* =========================
-       POPUP
-    ========================= */
-
-    .leaflet-popup-content-wrapper,
-    .leaflet-popup-tip {
-      background: #0e141b;
-
-      color: #eef3f8;
-
-      border: 1px solid #293541;
-    }
-
-    .leaflet-popup-content {
-      margin: 13px;
-
-      min-width: 200px;
-    }
-
-    .popup-title {
-      font-size: 16px;
-
-      font-weight: 800;
-    }
-
-    .popup-subtitle {
-      margin-top: 2px;
-
-      color: #7f8c9b;
-
-      font-size: 11px;
-    }
-
-    .popup-row {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
       display: flex;
-
-      justify-content: space-between;
-
-      gap: 15px;
-
-      padding: 7px 0;
-
-      border-bottom: 1px solid #202a35;
-
+      align-items: center;
+      justify-content: center;
+      background: #eef5f7;
+      color: #081116;
+      border: 3px solid #172b31;
+      box-shadow:
+        0 4px 16px rgba(0,0,0,.5),
+        0 0 0 1px rgba(255,255,255,.25);
       font-size: 11px;
+      font-weight: 950;
+      transform: rotate(0deg);
     }
 
-    .popup-row:last-child {
-      border-bottom: none;
+    .train-marker.late {
+      background: #ffd49a;
     }
 
-    .good {
-      color: #36e39a;
+    .train-marker.very-late {
+      background: #ff9c9c;
     }
 
-    .late {
-      color: #ff6674;
+    .train-marker span {
+      transform: scale(.92);
     }
-
 
     /* =========================
-       SEARCH RESULTS
+       RIGHT INFO PANEL
     ========================= */
 
-    .search-results {
+    #infoPanel {
       position: absolute;
-
-      top: 66px;
-      left: 14px;
-
-      width: min(390px, calc(100% - 28px));
-
-      z-index: 1300;
-
+      right: 20px;
+      top: 20px;
+      width: 330px;
+      max-height: calc(100% - 40px);
+      overflow-y: auto;
+      z-index: 900;
       display: none;
-
-      background: rgba(9, 13, 18, .97);
-
-      border: 1px solid #293541;
-
-      border-radius: 10px;
-
-      overflow: hidden;
-
-      box-shadow:
-        0 15px 45px rgba(0,0,0,.45);
+      background: rgba(7,17,22,.94);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
     }
 
-    .search-results.show {
+    #infoPanel.show {
       display: block;
     }
 
-    .search-result {
-      width: 100%;
+    #infoPanel::-webkit-scrollbar {
+      width: 4px;
+    }
 
-      padding: 11px 13px;
+    #infoPanel::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.12);
+    }
 
-      color: #eef3f8;
+    .panel-header {
+      padding: 18px 18px 15px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      position: relative;
+    }
 
-      background: transparent;
-
-      border: 0;
-
-      border-bottom: 1px solid #202a35;
-
-      text-align: left;
-
+    .close-panel {
+      position: absolute;
+      right: 13px;
+      top: 13px;
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      color: #8da1a7;
       cursor: pointer;
+      font-size: 15px;
     }
 
-    .search-result:hover {
-      background: #151d26;
+    .panel-kicker {
+      font-size: 9px;
+      color: #6e858d;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
     }
 
-    .result-type {
-      margin-right: 5px;
+    .panel-title {
+      margin-top: 5px;
+      font-size: 27px;
+      font-weight: 950;
+      letter-spacing: .2px;
     }
 
-    .result-name {
-      font-weight: 700;
+    .panel-subtitle {
+      margin-top: 4px;
+      color: #91a6ad;
+      font-size: 11px;
     }
 
-    .result-detail {
-      margin-left: 7px;
+    .panel-grid {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
-      color: #778594;
+    .info-box {
+      padding: 12px;
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.055);
+      border-radius: 11px;
+    }
 
+    .info-label {
+      font-size: 9px;
+      color: #617981;
+      margin-bottom: 6px;
+    }
+
+    .info-value {
+      color: #e4edef;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+
+    .info-value.big {
+      font-size: 18px;
+    }
+
+    .info-value.green {
+      color: #78e49d;
+    }
+
+    .info-value.orange {
+      color: #ffc176;
+    }
+
+    .info-value.red {
+      color: #ff8888;
+    }
+
+    .panel-section {
+      padding: 0 14px 14px;
+    }
+
+    .panel-section-title {
+      padding: 5px 4px 9px;
       font-size: 10px;
+      color: #849aa1;
+      letter-spacing: 1px;
     }
 
+    .next-station {
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.055);
+    }
+
+    .next-station-name {
+      font-size: 17px;
+      font-weight: 850;
+    }
+
+    .next-station-meta {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #70868d;
+    }
 
     /* =========================
-       LEGEND
+       ALERT
     ========================= */
 
-    .legend {
+    #alertBar {
       position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 20px;
+      z-index: 850;
+      display: none;
+      max-width: 560px;
+      padding: 13px 16px;
+      border-radius: 13px;
+      background: rgba(65,24,24,.94);
+      border: 1px solid rgba(255,115,115,.2);
+      box-shadow: 0 12px 35px rgba(0,0,0,.3);
+    }
 
-      right: 16px;
-      bottom: 17px;
+    #alertBar.show {
+      display: block;
+    }
 
-      z-index: 1100;
+    .alert-title {
+      font-size: 11px;
+      font-weight: 850;
+      color: #ffaaaa;
+    }
 
-      padding: 10px 12px;
-
-      background: rgba(8, 12, 17, .92);
-
-      border: 1px solid #27323d;
-
-      border-radius: 9px;
-
+    .alert-description {
+      margin-top: 4px;
       font-size: 10px;
-
-      color: #aab5bf;
+      color: #c99393;
+      line-height: 1.5;
     }
-
-    .legend-item {
-      display: flex;
-
-      align-items: center;
-
-      gap: 7px;
-
-      margin: 5px 0;
-    }
-
 
     /* =========================
        MOBILE
     ========================= */
 
-    .mobile-menu {
+    #mobileButton {
       display: none;
-
       position: absolute;
-
-      top: 13px;
-      left: 13px;
-
-      z-index: 1500;
-
-      width: 40px;
-      height: 40px;
-
-      border-radius: 10px;
-
-      background: #0d1218;
-
-      border: 1px solid #293541;
-
+      left: 14px;
+      top: 14px;
+      z-index: 1200;
+      width: 43px;
+      height: 43px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: rgba(7,17,22,.9);
       color: white;
-
-      font-size: 19px;
+      font-size: 18px;
     }
 
-    @media (max-width: 800px) {
-
-      #app {
-        display: block;
-      }
-
-      .sidebar {
+    @media (max-width: 850px) {
+      #sidebar {
         position: absolute;
-
-        top: 10px;
-        bottom: 10px;
-        left: 10px;
-
-        width: min(315px, calc(100% - 20px));
-
-        border: 1px solid #27323d;
-
-        border-radius: 14px;
-
-        transform:
-          translateX(calc(-100% - 20px));
-
-        transition: transform .22s ease;
-
-        box-shadow:
-          0 20px 60px rgba(0,0,0,.6);
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+        width: min(355px, 88vw);
+        box-shadow: 20px 0 60px rgba(0,0,0,.5);
       }
 
-      .sidebar.open {
+      #sidebar.open {
         transform: translateX(0);
       }
 
-      .mobile-menu {
+      #mobileButton {
         display: block;
       }
 
-      .top-bar {
-        left: 62px;
+      #infoPanel {
+        left: 14px;
+        right: 14px;
+        top: auto;
+        bottom: 14px;
+        width: auto;
+        max-height: 58%;
+      }
+
+      #alertBar {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+      }
+
+      #infoPanel.show + #alertBar {
+        display: none;
       }
     }
   </style>
@@ -666,160 +672,217 @@
 
 <div id="app">
 
-  <aside class="sidebar" id="sidebar">
+  <button id="mobileButton">☰</button>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
 
     <div class="brand">
       <div class="brand-logo">🚆</div>
 
       <div>
-        <div class="brand-title">
-          TRA LIVE
-        </div>
+        <div class="brand-title">TRA LIVE</div>
+        <div class="brand-subtitle">TAIWAN RAILWAY REAL-TIME</div>
+      </div>
 
-        <div class="brand-subtitle">
-          台鐵即時列車地圖
-        </div>
+      <div class="live-status">
+        <span class="live-dot"></span>
+        LIVE
       </div>
     </div>
-
 
     <div class="search-box">
-      <input
-        id="search"
-        type="text"
-        autocomplete="off"
-        placeholder="搜尋車次或車站，例如 327、臺北"
-      >
+      <div class="search-wrapper">
+        <span class="search-icon">⌕</span>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="搜尋車次、車站..."
+          autocomplete="off"
+        >
+      </div>
     </div>
 
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">
+        全部
+      </button>
 
-    <div class="statistics">
+      <button class="filter-btn" data-filter="normal">
+        正常
+      </button>
 
-      <div class="stat-card">
-        <div class="stat-label">
-          LIVE TRAINS
-        </div>
+      <button class="filter-btn" data-filter="delay">
+        誤點
+      </button>
+    </div>
 
-        <div
-          class="stat-value"
-          id="trainCount"
-        >
-          --
-        </div>
+    <div class="stats">
+
+      <div class="stat">
+        <div class="stat-value" id="trainCount">--</div>
+        <div class="stat-label">LIVE TRAINS</div>
       </div>
 
+      <div class="stat">
+        <div class="stat-value" id="delayCount">--</div>
+        <div class="stat-label">DELAYED</div>
+      </div>
 
-      <div class="stat-card">
-        <div class="stat-label">
-          STATIONS
-        </div>
-
-        <div
-          class="stat-value"
-          id="stationCount"
-        >
-          --
-        </div>
+      <div class="stat">
+        <div class="stat-value" id="stationCount">--</div>
+        <div class="stat-label">STATIONS</div>
       </div>
 
     </div>
 
+    <div class="section-title">
+      <strong>即時列車</strong>
+      <span id="updateText">等待資料...</span>
+    </div>
 
-    <div class="sidebar-content">
-
-      <div class="section-title">
-        SYSTEM
-      </div>
-
-      <div class="connection">
-
-        <span
-          class="connection-dot"
-          id="connectionDot"
-        ></span>
-
-        <span id="connectionText">
-          TDX API 連線中
-        </span>
-
-      </div>
-
+    <div id="trainList">
       <div
-        class="update-time"
-        id="updateTime"
+        style="
+          padding:30px 15px;
+          text-align:center;
+          color:#60757d;
+          font-size:11px;
+        "
       >
-        等待資料…
+        正在載入台鐵即時資料...
       </div>
-
-
-      <div class="section-title">
-        ALERTS
-      </div>
-
-      <div id="alerts">
-        <div class="no-alert">
-          讀取中…
-        </div>
-      </div>
-
     </div>
 
   </aside>
 
+  <!-- MAP -->
+  <main id="map"></main>
 
-  <main class="map-container">
+  <!-- INFO PANEL -->
+  <section id="infoPanel">
 
-    <button
-      class="mobile-menu"
-      id="mobileMenu"
-    >
-      ☰
-    </button>
+    <div class="panel-header">
 
+      <button
+        class="close-panel"
+        id="closePanel"
+      >
+        ×
+      </button>
 
-    <div class="top-bar">
-
-      <div class="top-pill">
-        🚆 <strong>TRA LIVE</strong>
+      <div class="panel-kicker" id="panelKicker">
+        TRAIN
       </div>
 
-      <div class="top-pill">
-        <span class="live">● LIVE</span>
-        &nbsp; 30 SEC
+      <div class="panel-title" id="panelTitle">
+        --
+      </div>
+
+      <div class="panel-subtitle" id="panelSubtitle">
+        --
       </div>
 
     </div>
 
+    <div class="panel-grid">
+
+      <div class="info-box">
+        <div class="info-label">車種</div>
+        <div class="info-value" id="infoType">--</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">誤點</div>
+        <div class="info-value big" id="infoDelay">--</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">目前位置</div>
+        <div class="info-value" id="infoCurrent">--</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">方向</div>
+        <div class="info-value" id="infoDirection">--</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">終點</div>
+        <div class="info-value" id="infoDestination">--</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">月台</div>
+        <div class="info-value" id="infoPlatform">--</div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">速度</div>
+        <div class="info-value" id="infoSpeed">
+          TDX 未提供
+        </div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-label">最後更新</div>
+        <div class="info-value" id="infoUpdated">--</div>
+      </div>
+
+    </div>
+
+    <div class="panel-section">
+
+      <div class="panel-section-title">
+        下一站
+      </div>
+
+      <div class="next-station">
+
+        <div
+          class="next-station-name"
+          id="infoNextStation"
+        >
+          --
+        </div>
+
+        <div
+          class="next-station-meta"
+          id="infoNextMeta"
+        >
+          --
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ALERT -->
+  <div id="alertBar">
 
     <div
-      class="search-results"
-      id="searchResults"
-    ></div>
-
-
-    <div id="map"></div>
-
-
-    <div class="legend">
-
-      <div class="legend-item">
-        <span class="train-marker"></span>
-        即時列車
-      </div>
-
-      <div class="legend-item">
-        <span class="station-marker"></span>
-        車站
-      </div>
-
+      class="alert-title"
+      id="alertTitle"
+    >
+      ⚠️ 路線異常
     </div>
 
-  </main>
+    <div
+      class="alert-description"
+      id="alertDescription"
+    >
+      --
+    </div>
+
+  </div>
 
 </div>
 
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
 
 <script src="/app.js"></script>
 
