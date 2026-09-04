@@ -1,676 +1,1086 @@
-let map;
-let stationData = [];
-let trainData = [];
-let trainMarkers = {};
-
-const REFRESH_MS = 30000;
+// ============================================================
+// TRA LIVE
+// Taiwan Railway Live Map
+// ============================================================
 
 
-// ================================
-// 初始化地圖
-// ================================
+// ============================================================
+// MAP
+// ============================================================
 
-function initMap() {
+const map = L.map("map", {
+  zoomControl: false,
+  preferCanvas: true
+}).setView(
+  [23.75, 121.05],
+  7
+);
 
-  map = L.map("map").setView(
-    [23.7, 121.0],
-    8
-  );
 
-  L.tileLayer(
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
-      maxZoom: 19,
-      attribution:
-        "&copy; OpenStreetMap contributors"
-    }
-  ).addTo(map);
+L.control.zoom({
+  position: "bottomleft"
+}).addTo(map);
+
+
+L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 19,
+
+    attribution:
+      "© OpenStreetMap contributors"
+  }
+).addTo(map);
+
+
+// ============================================================
+// LAYERS
+// ============================================================
+
+const stationLayer =
+  L.layerGroup().addTo(map);
+
+const trainLayer =
+  L.layerGroup().addTo(map);
+
+const lineLayer =
+  L.layerGroup().addTo(map);
+
+
+// ============================================================
+// DATA
+// ============================================================
+
+const stations = new Map();
+
+const trains = new Map();
+
+const searchItems = [];
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const $ = id =>
+  document.getElementById(id);
+
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 
-// ================================
-// 呼叫我們自己的 TDX API
-// ================================
+function formatDelay(delay) {
+
+  const n =
+    Number(delay || 0);
+
+  if (n > 0) {
+    return `+${n} 分鐘`;
+  }
+
+  return "準點";
+}
+
+
+function delayClass(delay) {
+
+  return Number(delay || 0) > 0
+    ? "late"
+    : "good";
+}
+
+
+function formatTime(value) {
+
+  if (!value) {
+    return "--";
+  }
+
+  try {
+
+    return new Date(value)
+      .toLocaleString(
+        "zh-TW",
+        {
+          hour12: false
+        }
+      );
+
+  } catch {
+
+    return value;
+  }
+}
+
+
+// ============================================================
+// ICONS
+// ============================================================
+
+function createStationIcon() {
+
+  return L.divIcon({
+
+    className: "",
+
+    html:
+      `<span class="station-marker"></span>`,
+
+    iconSize: [
+      8,
+      8
+    ],
+
+    iconAnchor: [
+      4,
+      4
+    ]
+  });
+}
+
+
+function createTrainIcon() {
+
+  return L.divIcon({
+
+    className: "",
+
+    html:
+      `<span class="train-marker"></span>`,
+
+    iconSize: [
+      15,
+      15
+    ],
+
+    iconAnchor: [
+      7,
+      7
+    ]
+  });
+}
+
+
+// ============================================================
+// API
+// ============================================================
 
 async function getAPI(type) {
 
-  const url =
-    `/api/tdx?type=${encodeURIComponent(type)}&top=300&count=true`;
-
   const response =
-    await fetch(url);
+    await fetch(
+      `/api/tdx?type=${encodeURIComponent(type)}`,
+      {
+        cache: "no-store"
+      }
+    );
 
-  const data =
-    await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      data.error ||
-      "API 連線失敗"
-    );
+
+    const text =
+      await response.text();
+
+    throw new Error(text);
   }
 
-  return data;
+
+  return response.json();
 }
 
 
-// ================================
-// 載入車站
-// ================================
+// ============================================================
+// LOAD STATIONS
+// ============================================================
 
 async function loadStations() {
 
   const data =
     await getAPI("stations");
 
-  stationData =
+
+  const list =
     data.Stations || [];
 
-  drawStations();
-}
+
+  for (const station of list) {
+
+    const position =
+      station.StationPosition;
 
 
-// ================================
-// 畫車站
-// ================================
-
-function drawStations() {
-
-  stationData.forEach(station => {
-
-    if (
-      !station.StationPosition
-    ) {
-      return;
-    }
-
-    const lat =
-      Number(
-        station
-          .StationPosition
-          .PositionLat
-      );
-
-    const lon =
-      Number(
-        station
-          .StationPosition
-          .PositionLon
-      );
-
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lon)
-    ) {
-      return;
-    }
-
-    const marker =
-      L.circleMarker(
-        [lat, lon],
-        {
-          radius: 3,
-          weight: 1,
-          fillOpacity: 0.8
-        }
-      ).addTo(map);
-
-    marker.bindTooltip(
-      `
-      ${station.StationName.Zh_tw}
-      <br>
-      ${station.StationID}
-      `
-    );
-
-  });
-}
-
-
-// ================================
-// 載入即時列車
-// ================================
-
-async function loadTrains() {
-
-  const data =
-    await getAPI("trains");
-
-  trainData =
-    data.TrainLiveBoards || [];
-
-  document.getElementById(
-    "trainCount"
-  ).textContent =
-    trainData.length;
-
-  document.getElementById(
-    "lastUpdate"
-  ).textContent =
-    formatTime(
-      data.UpdateTime
-    );
-
-  document.getElementById(
-    "apiStatus"
-  ).textContent =
-    "正常";
-
-  drawTrains();
-}
-
-
-// ================================
-// 畫列車
-// ================================
-
-function drawTrains() {
-
-  Object.values(
-    trainMarkers
-  ).forEach(marker => {
-
-    map.removeLayer(marker);
-
-  });
-
-  trainMarkers = {};
-
-
-  trainData.forEach(train => {
-
-    const station =
-      stationData.find(
-        station =>
-          String(
-            station.StationID
-          ) ===
-          String(
-            train.StationID
-          )
-      );
-
-    if (
-      !station ||
-      !station.StationPosition
-    ) {
-      return;
+    if (!position) {
+      continue;
     }
 
 
     const lat =
-      Number(
-        station
-          .StationPosition
-          .PositionLat
-      );
+      Number(position.PositionLat);
 
     const lon =
-      Number(
-        station
-          .StationPosition
-          .PositionLon
-      );
+      Number(position.PositionLon);
 
 
     if (
       !Number.isFinite(lat) ||
       !Number.isFinite(lon)
     ) {
-      return;
+      continue;
     }
 
 
-    const icon =
-      L.divIcon({
-        className: "",
-        html: `
-          <div class="train-marker">
-            🚆
-          </div>
-        `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      });
+    const name =
+      station.StationName?.Zh_tw
+      || station.StationName?.Zh_cn
+      || "";
+
+
+    const english =
+      station.StationName?.En
+      || "";
+
+
+    const stationID =
+      String(station.StationID);
 
 
     const marker =
       L.marker(
         [lat, lon],
         {
-          icon: icon
+          icon:
+            createStationIcon(),
+
+          title:
+            name
         }
-      ).addTo(map);
-
-
-    const delay =
-      Number(
-        train.DelayTime || 0
       );
 
 
-    const delayText =
-      delay > 0
-        ? `晚點 ${delay} 分`
-        : "準點";
+    marker.bindPopup(`
+
+      <div class="popup-title">
+        🚉 ${escapeHTML(name)}
+      </div>
+
+      <div class="popup-subtitle">
+        ${escapeHTML(english)}
+      </div>
+
+      <div class="popup-row">
+        <span>站號</span>
+        <strong>
+          ${escapeHTML(stationID)}
+        </strong>
+      </div>
+
+      <div class="popup-row">
+        <span>座標</span>
+        <span>
+          ${lat.toFixed(5)},
+          ${lon.toFixed(5)}
+        </span>
+      </div>
+
+    `);
 
 
-    marker.bindTooltip(
-      `
-      <strong>
-        ${train.TrainNo}
-      </strong>
+    marker.addTo(
+      stationLayer
+    );
 
-      <br>
 
-      ${
-        train
-          .TrainTypeName
-          ?.Zh_tw || ""
-      }
-
-      <br>
-
-      ${train.StationName}
-
-      <br>
-
-      ${delayText}
-      `,
+    stations.set(
+      stationID,
       {
-        direction: "top"
+        data: station,
+        marker
       }
     );
 
 
-    marker.on(
-      "click",
-      () => {
+    searchItems.push({
 
-        showTrain(train);
+      type:
+        "station",
 
+      id:
+        stationID,
+
+      name:
+        name,
+
+      detail:
+        english,
+
+      marker,
+
+      lat,
+
+      lon
+
+    });
+  }
+
+
+  $("stationCount")
+    .textContent =
+      stations.size;
+}
+
+
+// ============================================================
+// LOAD RAILWAY SHAPE
+// ============================================================
+
+async function loadShape() {
+
+  try {
+
+    const data =
+      await getAPI("shape");
+
+
+    const shapes =
+      data.Shapes || [];
+
+
+    for (const shape of shapes) {
+
+      if (!shape.Geometry) {
+        continue;
       }
-    );
 
 
-    trainMarkers[
-      train.TrainNo
-    ] = marker;
-
-  });
-}
+      let geometry =
+        shape.Geometry.trim();
 
 
-// ================================
-// 搜尋車次
-// ================================
-
-function searchTrain() {
-
-  const input =
-    document.getElementById(
-      "trainSearch"
-    );
-
-  const number =
-    input.value.trim();
+      geometry =
+        geometry
+          .replace(
+            /^LINESTRING\s*\(/i,
+            ""
+          )
+          .replace(
+            /\)\s*$/,
+            ""
+          );
 
 
-  const result =
-    document.getElementById(
-      "searchResult"
-    );
+      const points =
+        geometry
+          .split(",")
+          .map(part => {
+
+            const values =
+              part
+                .trim()
+                .split(/\s+/)
+                .map(Number);
 
 
-  if (!number) {
-
-    result.innerHTML =
-      `
-      <div class="muted">
-        請輸入車次
-      </div>
-      `;
-
-    return;
-  }
+            if (
+              values.length < 2 ||
+              !Number.isFinite(values[0]) ||
+              !Number.isFinite(values[1])
+            ) {
+              return null;
+            }
 
 
-  const train =
-    trainData.find(
-      item =>
-        String(
-          item.TrainNo
-        ) === number
-    );
+            // WKT = longitude latitude
+            return [
+              values[1],
+              values[0]
+            ];
+          })
+          .filter(Boolean);
 
 
-  if (!train) {
-
-    result.innerHTML =
-      `
-      <div class="muted">
-        目前找不到車次
-        ${number}
-      </div>
-      `;
-
-    return;
-  }
+      if (points.length < 2) {
+        continue;
+      }
 
 
-  const delay =
-    Number(
-      train.DelayTime || 0
-    );
+      L.polyline(
+        points,
+        {
+          color:
+            "#657687",
 
+          weight:
+            2,
 
-  result.innerHTML =
-    `
-    <div
-      class="train-card"
-      onclick="showTrainByNumber('${number}')"
-    >
-
-      <div class="train-number">
-        ${train.TrainNo}
-      </div>
-
-      <div class="train-type">
-        ${
-          train
-            .TrainTypeName
-            ?.Zh_tw || ""
+          opacity:
+            .55
         }
-      </div>
-
-      <div>
-        目前位置：
-        ${train.StationName}
-      </div>
-
-      <div
-        class="delay ${
-          delay > 0
-            ? "red"
-            : "green"
-        }"
-      >
-        ${
-          delay > 0
-            ? `晚點 ${delay} 分鐘`
-            : "準點"
-        }
-      </div>
-
-    </div>
-    `;
-}
-
-
-// ================================
-// 顯示列車
-// ================================
-
-function showTrainByNumber(
-  number
-) {
-
-  const train =
-    trainData.find(
-      item =>
-        String(
-          item.TrainNo
-        ) ===
-        String(number)
-    );
-
-
-  if (train) {
-    showTrain(train);
-  }
-}
-
-
-// ================================
-// 列車詳細資訊
-// ================================
-
-function showTrain(train) {
-
-  const type =
-    train
-      .TrainTypeName
-      ?.Zh_tw ||
-    "未知車種";
-
-
-  const delay =
-    Number(
-      train.DelayTime || 0
-    );
-
-
-  const station =
-    stationData.find(
-      item =>
-        String(
-          item.StationID
-        ) ===
-        String(
-          train.StationID
-        )
-    );
-
-
-  const message =
-    `
-    <strong>
-      車次 ${train.TrainNo}
-    </strong>
-
-    <br><br>
-
-    車種：
-    ${type}
-
-    <br>
-
-    目前位置：
-    ${train.StationName}
-
-    <br>
-
-    誤點：
-    ${
-      delay > 0
-        ? `晚點 ${delay} 分鐘`
-        : "準點"
+      ).addTo(
+        lineLayer
+      );
     }
 
-    <br>
+  } catch (error) {
 
-    TDX 更新：
-    ${formatTime(train.UpdateTime)}
-    `;
-
-
-  L.popup()
-    .setLatLng(
-      station &&
-      station.StationPosition
-        ? [
-            Number(
-              station
-                .StationPosition
-                .PositionLat
-            ),
-            Number(
-              station
-                .StationPosition
-                .PositionLon
-            )
-          ]
-        : map.getCenter()
-    )
-    .setContent(message)
-    .openOn(map);
+    console.warn(
+      "Shape API unavailable:",
+      error
+    );
+  }
 }
 
 
-// ================================
-// 載入 Alert
-// ================================
+// ============================================================
+// TRAIN POPUP
+// ============================================================
+
+function buildTrainPopup(train) {
+
+  const delay =
+    Number(
+      train.DelayTime || 0
+    );
+
+
+  return `
+
+    <div class="popup-title">
+      🚆 ${escapeHTML(train.TrainNo)}
+    </div>
+
+    <div class="popup-subtitle">
+      ${escapeHTML(
+        train.TrainTypeName ||
+        "列車"
+      )}
+    </div>
+
+
+    <div class="popup-row">
+      <span>目前回報</span>
+
+      <strong>
+        ${escapeHTML(
+          train.StationName ||
+          "未知"
+        )}
+      </strong>
+    </div>
+
+
+    <div class="popup-row">
+      <span>誤點</span>
+
+      <strong
+        class="${delayClass(delay)}"
+      >
+        ${formatDelay(delay)}
+      </strong>
+    </div>
+
+
+    <div class="popup-row">
+      <span>車種</span>
+
+      <span>
+        ${escapeHTML(
+          train.TrainTypeName ||
+          "--"
+        )}
+      </span>
+    </div>
+
+
+    <div class="popup-row">
+      <span>更新</span>
+
+      <span>
+        ${formatTime(
+          train.UpdateTime
+        )}
+      </span>
+    </div>
+
+  `;
+}
+
+
+// ============================================================
+// LOAD LIVE TRAINS
+// ============================================================
+
+async function loadTrains() {
+
+  const data =
+    await getAPI("trains");
+
+
+  const list =
+    data.TrainLiveBoards || [];
+
+
+  const currentTrainNumbers =
+    new Set();
+
+
+  for (const train of list) {
+
+    const trainNo =
+      String(train.TrainNo);
+
+
+    currentTrainNumbers.add(
+      trainNo
+    );
+
+
+    const station =
+      stations.get(
+        String(train.StationID)
+      );
+
+
+    // TDX 沒有對應車站座標
+    // 就不自行猜位置
+    if (!station) {
+      continue;
+    }
+
+
+    const position =
+      station.data.StationPosition;
+
+
+    const lat =
+      Number(position.PositionLat);
+
+    const lon =
+      Number(position.PositionLon);
+
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon)
+    ) {
+      continue;
+    }
+
+
+    let marker =
+      trains.get(
+        trainNo
+      );
+
+
+    if (!marker) {
+
+      marker =
+        L.marker(
+          [lat, lon],
+          {
+            icon:
+              createTrainIcon(),
+
+            zIndexOffset:
+              500,
+
+            title:
+              trainNo
+          }
+        );
+
+
+      marker.addTo(
+        trainLayer
+      );
+
+
+      trains.set(
+        trainNo,
+        marker
+      );
+
+
+      searchItems.push({
+
+        type:
+          "train",
+
+        id:
+          trainNo,
+
+        name:
+          trainNo,
+
+        detail:
+          train.TrainTypeName ||
+          "列車",
+
+        marker
+
+      });
+
+    } else {
+
+      marker.setLatLng(
+        [lat, lon]
+      );
+    }
+
+
+    marker.bindPopup(
+      buildTrainPopup(
+        train
+      )
+    );
+  }
+
+
+  // 清除已經不在即時資料中的列車
+  for (
+    const [
+      trainNo,
+      marker
+    ] of trains
+  ) {
+
+    if (
+      !currentTrainNumbers.has(
+        trainNo
+      )
+    ) {
+
+      trainLayer.removeLayer(
+        marker
+      );
+
+      trains.delete(
+        trainNo
+      );
+    }
+  }
+
+
+  $("trainCount")
+    .textContent =
+      data.Count ??
+      trains.size;
+
+
+  if (data.UpdateTime) {
+
+    $("updateTime")
+      .textContent =
+        `資料更新：${formatTime(
+          data.UpdateTime
+        )}`;
+  }
+}
+
+
+// ============================================================
+// ALERTS
+// ============================================================
 
 async function loadAlerts() {
 
-  const data =
-    await getAPI("alerts");
+  try {
 
-  const alerts =
-    data.Alerts || [];
-
-  document.getElementById(
-    "alertCount"
-  ).textContent =
-    alerts.length;
+    const data =
+      await getAPI("alerts");
 
 
-  const container =
-    document.getElementById(
-      "alerts"
+    const alerts =
+      data.Alerts || [];
+
+
+    const box =
+      $("alerts");
+
+
+    if (!alerts.length) {
+
+      box.innerHTML = `
+
+        <div class="no-alert">
+          ✓ 目前沒有重大運行異常
+        </div>
+
+      `;
+
+      return;
+    }
+
+
+    box.innerHTML =
+      alerts
+        .slice(0, 8)
+        .map(alert => `
+
+          <div class="alert-card">
+
+            <div class="alert-title">
+              ⚠️ ${escapeHTML(
+                alert.Title ||
+                "台鐵運行異常"
+              )}
+            </div>
+
+            <div class="alert-description">
+              ${escapeHTML(
+                alert.Description ||
+                ""
+              )}
+            </div>
+
+          </div>
+
+        `)
+        .join("");
+
+  } catch (error) {
+
+    console.warn(
+      "Alert API unavailable:",
+      error
     );
 
 
-  if (!alerts.length) {
+    $("alerts").innerHTML = `
 
-    container.innerHTML =
-      `
-      <div class="muted">
-        目前沒有重大異常
+      <div
+        style="
+          color:#7f8b99;
+          font-size:11px;
+        "
+      >
+        異常資料暫時無法取得
       </div>
-      `;
+
+    `;
+  }
+}
+
+
+// ============================================================
+// SEARCH
+// ============================================================
+
+function search(query) {
+
+  const box =
+    $("searchResults");
+
+
+  const value =
+    query
+      .trim()
+      .toLowerCase();
+
+
+  if (!value) {
+
+    box.classList.remove(
+      "show"
+    );
+
+    box.innerHTML = "";
 
     return;
   }
 
 
-  container.innerHTML =
-    alerts.map(
-      alert =>
+  const results =
+    searchItems
+      .filter(item => {
+
+        const text =
+          [
+            item.name,
+            item.detail,
+            item.id
+          ]
+            .join(" ")
+            .toLowerCase();
+
+
+        return text.includes(
+          value
+        );
+      })
+      .slice(0, 12);
+
+
+  if (!results.length) {
+
+    box.innerHTML = `
+
+      <div
+        style="
+          padding:13px;
+          color:#7f8b99;
+          font-size:11px;
+        "
+      >
+        找不到符合的車次或車站
+      </div>
+
+    `;
+
+    box.classList.add(
+      "show"
+    );
+
+    return;
+  }
+
+
+  box.innerHTML =
+    results
+      .map(
+        (item, index) => `
+
+          <button
+            class="search-result"
+            data-index="${index}"
+          >
+
+            <span class="result-type">
+              ${
+                item.type === "train"
+                  ? "🚆"
+                  : "🚉"
+              }
+            </span>
+
+            <span class="result-name">
+              ${escapeHTML(
+                item.name
+              )}
+            </span>
+
+            <span class="result-detail">
+              ${escapeHTML(
+                item.detail ||
+                ""
+              )}
+            </span>
+
+          </button>
+
         `
-        <div class="alert">
+      )
+      .join("");
 
-          <div class="alert-title">
-            🚨 ${alert.Title || "鐵路異常"}
-          </div>
 
-          <div class="alert-text">
-            ${
-              (alert.Description || "")
-                .replace(
-                  /\n/g,
-                  "<br>"
-                )
-            }
-          </div>
+  box.classList.add(
+    "show"
+  );
 
-        </div>
-        `
-    ).join("");
+
+  box
+    .querySelectorAll(
+      ".search-result"
+    )
+    .forEach(button => {
+
+      button.onclick =
+        () => {
+
+          const item =
+            results[
+              Number(
+                button.dataset.index
+              )
+            ];
+
+
+          const marker =
+            item.marker;
+
+
+          if (
+            Number.isFinite(
+              item.lat
+            ) &&
+            Number.isFinite(
+              item.lon
+            )
+          ) {
+
+            map.setView(
+              [
+                item.lat,
+                item.lon
+              ],
+              14
+            );
+
+          } else {
+
+            map.setView(
+              marker.getLatLng(),
+              14
+            );
+          }
+
+
+          marker.openPopup();
+
+
+          box.classList.remove(
+            "show"
+          );
+        };
+    });
 }
 
 
-// ================================
-// 時間格式
-// ================================
+$("search")
+  .addEventListener(
+    "input",
+    event => {
 
-function formatTime(
-  value
-) {
-
-  if (!value) {
-    return "--";
-  }
-
-
-  const date =
-    new Date(value);
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return value;
-
-  }
-
-
-  return date.toLocaleTimeString(
-    "zh-TW",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
+      search(
+        event.target.value
+      );
     }
   );
+
+
+// ============================================================
+// MOBILE MENU
+// ============================================================
+
+$("mobileMenu")
+  .addEventListener(
+    "click",
+    () => {
+
+      $("sidebar")
+        .classList.toggle(
+          "open"
+        );
+    }
+  );
+
+
+// ============================================================
+// CONNECTION STATUS
+// ============================================================
+
+function setConnection(
+  connected
+) {
+
+  const dot =
+    $("connectionDot");
+
+  const text =
+    $("connectionText");
+
+
+  if (connected) {
+
+    dot.classList.remove(
+      "error"
+    );
+
+    text.textContent =
+      "TDX API 已連線";
+
+  } else {
+
+    dot.classList.add(
+      "error"
+    );
+
+    text.textContent =
+      "TDX API 暫時無法取得資料";
+  }
 }
 
 
-// ================================
-// 初始化
-// ================================
+// ============================================================
+// REFRESH
+// ============================================================
 
-async function start() {
+async function refreshLiveData() {
 
-  initMap();
+  try {
 
+    await loadTrains();
+
+    setConnection(
+      true
+    );
+
+  } catch (error) {
+
+    console.error(
+      "TrainLiveBoard:",
+      error
+    );
+
+    setConnection(
+      false
+    );
+  }
+
+
+  await loadAlerts();
+}
+
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+async function initialize() {
 
   try {
 
     await loadStations();
 
-    await loadTrains();
+    await loadShape();
 
-    await loadAlerts();
+    await refreshLiveData();
+
+    console.log(
+      "TRA LIVE initialized."
+    );
+
+
+    // TDX TrainLiveBoard
+    // 每 30 秒更新
+
+    setInterval(
+      refreshLiveData,
+      30 * 1000
+    );
+
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "TRA LIVE initialization failed:",
+      error
+    );
 
-    document.getElementById(
-      "apiStatus"
-    ).textContent =
-      "連線失敗";
 
+    setConnection(
+      false
+    );
   }
-
-
-  setInterval(
-    async () => {
-
-      try {
-
-        await loadTrains();
-
-        await loadAlerts();
-
-      } catch (error) {
-
-        console.error(
-          "更新失敗",
-          error
-        );
-
-      }
-
-    },
-    REFRESH_MS
-  );
-
 }
 
 
-start();
+initialize();
